@@ -11,8 +11,6 @@ def test_model_parameters():
     # Test different alpha values for MultinomialNB and BernoulliNB
     alphas = [0.01, 0.1, 0.3, 1.0, 3.0]
     results = []
-    best_model = None
-    best_accuracy = 0
 
     for alpha in alphas:
         multinomial_model = make_pipeline(CountVectorizer(ngram_range=(1, 3), binary=True), MultinomialNB(alpha=alpha))
@@ -21,9 +19,6 @@ def test_model_parameters():
         multinomial_accuracy = accuracy_score(label_validation_data, multinomial_predictions)
         results.append(("Multinomial", alpha, multinomial_accuracy))
 
-        if multinomial_accuracy > best_accuracy:
-            best_accuracy = multinomial_accuracy
-            best_model = multinomial_model
 
         bernoulli_model = make_pipeline(CountVectorizer(ngram_range=(1, 3), binary=True), BernoulliNB(alpha=alpha))
         bernoulli_model.fit(text_training_data, label_training_data)
@@ -31,16 +26,8 @@ def test_model_parameters():
         bernoulli_accuracy = accuracy_score(label_validation_data, bernoulli_predictions)
         results.append(("Bernoulli", alpha, bernoulli_accuracy))
 
-        if bernoulli_accuracy > best_accuracy:
-            best_accuracy = bernoulli_accuracy
-            best_model = bernoulli_model
-
     for model_type, alpha, accuracy in results:
         print(model_type, "alpha =", alpha, "accuracy =", round(accuracy, 4))
-
-    print("Best model:", best_model, "with accuracy", round(best_accuracy, 4))
-
-    return best_model
 
 #Import the dataset from Hugging Face
 splits = {'train': 'plain_text/train-00000-of-00001.parquet', 'test': 'plain_text/test-00000-of-00001.parquet', 'unsupervised': 'plain_text/unsupervised-00000-of-00001.parquet'}
@@ -74,17 +61,18 @@ text_training_data, text_validation_data, label_training_data, label_validation_
 print("Train / validation / test:", len(text_training_data), len(text_validation_data), len(df_test))
 
 #Create naive baseline
-positive_count = np.sum(label_training_data == 1)
-negative_count = np.sum(label_training_data == 0)
+positive_count = np.sum(df['label'] == 1)
+negative_count = np.sum(df['label'] == 0)
 
 if positive_count > negative_count:
-    naive_baseline_prediction = np.ones(len(label_validation_data))
+    naive_baseline_prediction = np.ones(len(df_test))
 else:
-    naive_baseline_prediction = np.zeros(len(label_validation_data))
+    naive_baseline_prediction = np.zeros(len(df_test))
 
-#To avoid running the model parameter testing every time, we can comment out the following line after the first run and use the best model found.
-#best_model = test_model_parameters()
+#To avoid running the model parameter testing every time, we comment out the following line after the first run and use the best model found.
+#test_model_parameters()
 
-#Create the best pipeline model pipeline, on both the training and validation data
+#Create the best model pipeline, on both the training and validation data
 naive_bayes_model = make_pipeline(CountVectorizer(ngram_range=(1, 3), binary=True), MultinomialNB(alpha=0.3))
 naive_bayes_model.fit(df['text'], df['label'])
+
